@@ -37,7 +37,13 @@ describe PackStream do
         "\xA2\x2A\xC2\x85\x48\x65\x6C\x6C\x6F\xC3" => {42 => false, 'Hello' => true},
 
         # Map
-        "\xD8\x02\x2A\xC2\x85\x48\x65\x6C\x6C\x6F\xC3" => {42 => false, 'Hello' => true}
+        "\xD8\x02\x2A\xC2\x85\x48\x65\x6C\x6C\x6F\xC3" => {42 => false, 'Hello' => true},
+
+        # Tiny Struct
+        "\xB2\xC3\xC2" => [true, false],
+
+        # Struct
+        "\xDC\x02\xC0\xCA\x00\x00\x00\x2A" => [nil, 42]
 
         # rubocop:enable Metrics/LineLength
       }.each do |i, o|
@@ -91,8 +97,15 @@ describe PackStream do
         (0..15).to_a => "\xD4\x10\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F",
 
         # Maps
-        {42 => false, 'Hello' => true} => "\xA2\x2A\xC2\x85\x48\x65\x6C\x6C\x6F\xC3"
+        {42 => false, 'Hello' => true} => "\xA2\x2A\xC2\x85\x48\x65\x6C\x6C\x6F\xC3",
 
+        # Structs
+        [true, false].freeze => "\xB2\xC3\xC2",
+
+        [nil, 42].freeze => "\xB2\xC0\x2A",
+
+        (0..14).to_a.freeze => "\xBF\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E",
+        (0..15).to_a.freeze => "\xDC\x10\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F"
         # rubocop:enable Metrics/LineLength
       }.each do |i, o|
         context "object: #{i.inspect}" do

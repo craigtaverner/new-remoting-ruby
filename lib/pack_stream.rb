@@ -84,8 +84,11 @@ module PackStream
     end
 
     def array_stream
-      marker_string(header_bytes(0x90, 0xD4, @object.size)) +
-        @object.map { |e| Packer.new(e).packed_stream }.join
+      if @object.frozen?
+        marker_string(header_bytes(0x90, 0xD4, @object.size))
+      else
+        marker_string(header_bytes(0xB0, 0xDC, @object.size))
+      end + @object.map { |e| Packer.new(e).packed_stream }.join
     end
 
     def hash_stream
@@ -145,7 +148,7 @@ module PackStream
       if type_and_size = PackStream.marker_type_and_size(marker)
         type, size = type_and_size
 
-        size = shift_byte if [:text, :list, :map].include?(type)
+        size = shift_byte if [:text, :list, :map, :struct].include?(type)
 
         value_for_type!(type, size)
       elsif MARKER_TYPES.key?(marker)
@@ -167,6 +170,8 @@ module PackStream
         size.times.map { unpack_value! }
       when :tiny_map, :map
         value_for_map!(size)
+      when :tiny_struct, :struct
+        size.times.map { unpack_value! }.freeze
       end
     end
 
@@ -203,6 +208,8 @@ module PackStream
       [:tiny_list, marker - 0x90]
     elsif (0xA0..0xAF).include?(marker)
       [:tiny_map, marker - 0xA0]
+    elsif (0xB0..0xBF).include?(marker)
+      [:tiny_struct, marker - 0xB0]
     end
   end
 end
