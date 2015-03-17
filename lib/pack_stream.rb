@@ -84,11 +84,15 @@ module PackStream
     end
 
     def array_stream
-      if @object.frozen?
-        marker_string(header_bytes(0x90, 0xD4, @object.size))
-      else
-        marker_string(header_bytes(0xB0, 0xDC, @object.size))
-      end + @object.map { |e| Packer.new(e).packed_stream }.join
+      header = if @object.frozen?
+                 header_bytes(0xB0, 0xDC, @object.size)
+               else
+                 header_bytes(0x90, 0xD4, @object.size)
+               end
+
+      marker_string(header) + @object.map do |e|
+        Packer.new(e).packed_stream
+      end.join
     end
 
     def hash_stream
@@ -138,8 +142,6 @@ module PackStream
   class Unpacker
     def initialize(stream)
       @stream = stream
-
-      @stream = StringIO.new(@stream) if @stream.is_a?(String)
     end
 
     def unpack_value!
@@ -162,16 +164,11 @@ module PackStream
 
     def value_for_type!(type, size)
       case type
-      when :int
-        value_for_int!(size)
-      when :tiny_text, :text, :bytes
-        shift_bytes(size).pack('c*')
-      when :tiny_list, :list
-        size.times.map { unpack_value! }
-      when :tiny_map, :map
-        value_for_map!(size)
-      when :tiny_struct, :struct
-        size.times.map { unpack_value! }.freeze
+      when :int                      then value_for_int!(size)
+      when :tiny_text, :text, :bytes then shift_bytes(size).pack('c*')
+      when :tiny_list, :list     then size.times.map { unpack_value! }
+      when :tiny_map, :map       then value_for_map!(size)
+      when :tiny_struct, :struct then size.times.map { unpack_value! }.freeze
       end
     end
 
@@ -198,18 +195,15 @@ module PackStream
   end
 
   def self.marker_type_and_size(marker)
-    marker_spec = MARKER_TYPES[marker]
-
-    if marker_spec.is_a?(Array)
+    if (marker_spec = MARKER_TYPES[marker]).is_a?(Array)
       marker_spec
-    elsif (0x80..0x8F).include?(marker)
-      [:tiny_text, marker - 0x80]
-    elsif (0x90..0x9F).include?(marker)
-      [:tiny_list, marker - 0x90]
-    elsif (0xA0..0xAF).include?(marker)
-      [:tiny_map, marker - 0xA0]
-    elsif (0xB0..0xBF).include?(marker)
-      [:tiny_struct, marker - 0xB0]
+    else
+      case marker
+      when 0x80..0x8F then [:tiny_text, marker - 0x80]
+      when 0x90..0x9F then [:tiny_list, marker - 0x90]
+      when 0xA0..0xAF then [:tiny_map, marker - 0xA0]
+      when 0xB0..0xBF then [:tiny_struct, marker - 0xB0]
+      end
     end
   end
 end
