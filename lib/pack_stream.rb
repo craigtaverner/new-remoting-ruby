@@ -103,6 +103,10 @@ module PackStream
         end.join
     end
 
+    def self.pack_arguments(*objects)
+      objects.map {|o| new(o).packed_stream }.join
+    end
+
     private
 
     def header_bytes(tiny_base, regular_base, size)
@@ -145,6 +149,8 @@ module PackStream
     end
 
     def unpack_value!
+      return nil if depleted?
+
       marker = shift_byte
 
       if type_and_size = PackStream.marker_type_and_size(marker)
@@ -186,11 +192,15 @@ module PackStream
     end
 
     def shift_byte
-      shift_bytes(1).first
+      shift_bytes(1).first unless depleted?
     end
 
     def shift_bytes(length)
-      @stream.read(length).bytes
+      @stream.read(length).bytes unless depleted?
+    end
+
+    def depleted?
+      @stream.eof?
     end
   end
 
