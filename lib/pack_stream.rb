@@ -1,49 +1,5 @@
 require 'stringio'
 
-class SingleValueUnpacker
-  def initialize default_value
-    @default_value = default_value
-  end
-
-  def unpack marker, stream
-    @default_value
-  end
-end
-
-class PositiveTinyIntUnpacker
-  def unpack marker, stream
-    marker.to_i
-  end
-end
-
-class NegativeTinyIntUnpacker
-  def unpack marker, stream
-    marker.to_i - 0x100
-  end
-end
-
-class TinyTextUnpacker
-  def unpack marker, stream
-    size = (marker & 0x0F)
-    stream.unpack("LL#{size}")[1..size].map { |c| c.chr }.join
-  end
-end
-
-class PackStreamUnpacker
-  MARKER_BYTES = Hash[(0x00..0x7F).map { |byte| [byte, PositiveTinyIntUnpacker.new] } ]
-  MARKER_BYTES.merge!(0xC0 => SingleValueUnpacker.new(nil),
-                      0xC2 => SingleValueUnpacker.new(false),
-                      0xC3 => SingleValueUnpacker.new(true))
-  MARKER_BYTES.merge!(Hash[(0xF0..0xFF).map { |byte| [byte, NegativeTinyIntUnpacker.new] } ])
-  MARKER_BYTES.merge!(Hash[(0xB0..0xBF).map { |byte| [byte, TinyTextUnpacker.new] } ])
-
-  def unpack packed_stream
-    marker = packed_stream.read(1).bytes.first
-    kind = MARKER_BYTES[marker]
-    kind.unpack marker, packed_stream
-  end
-end
-
 module PackStream
   MARKER_TYPES = {
       C0: nil,
@@ -182,15 +138,51 @@ module PackStream
     end
   end
 
-  # Object which holds a stream of PackStream data
-  # and can unpack it
+  class SingleValueUnpacker
+    def initialize default_value
+      @default_value = default_value
+    end
+
+    def unpack marker, stream
+      @default_value
+    end
+  end
+
+  class PositiveTinyIntUnpacker
+    def unpack marker, stream
+      marker.to_i
+    end
+  end
+
+  class NegativeTinyIntUnpacker
+    def unpack marker, stream
+      marker.to_i - 0x100
+    end
+  end
+
+  class TinyTextUnpacker
+    def unpack marker, stream
+      size = (marker & 0x0F)
+      stream.unpack("LL#{size}")[1..size].map { |c| c.chr }.join
+    end
+  end
+
   class Unpacker
+    MARKER_BYTES = Hash[(0x00..0x7F).map { |byte| [byte, PositiveTinyIntUnpacker.new] } ]
+    MARKER_BYTES.merge!(0xC0 => SingleValueUnpacker.new(nil),
+                        0xC2 => SingleValueUnpacker.new(false),
+                        0xC3 => SingleValueUnpacker.new(true))
+    MARKER_BYTES.merge!(Hash[(0xF0..0xFF).map { |byte| [byte, NegativeTinyIntUnpacker.new] } ])
+    MARKER_BYTES.merge!(Hash[(0xB0..0xBF).map { |byte| [byte, TinyTextUnpacker.new] } ])
+
     def initialize stream
       @stream = stream
     end
 
     def unpack_value!
-      PackStreamUnpacker.new.unpack @stream
+      marker = @stream.read(1).bytes.first
+      kind = MARKER_BYTES[marker]
+      kind.unpack marker, @stream
     end
   end
 end
