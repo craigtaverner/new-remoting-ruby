@@ -1,7 +1,7 @@
 require './lib/pack_stream'
 
 describe PackStream do
-  describe PackStream::Packer do
+  describe PackStream::Unpacker do
     describe '#unpack_value!' do
       def unpacked string
         PackStream::Unpacker.new(StringIO.new(string)).unpack_value!
@@ -55,7 +55,7 @@ describe PackStream do
     end
   end
 
-  describe PackStream::Unpacker do
+  describe PackStream::Packer do
     describe '#packed_stream' do
       let(:packer) { PackStream::Packer.new(input) }
       let(:output) { packer.packed_stream }
