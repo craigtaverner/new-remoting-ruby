@@ -1,4 +1,5 @@
 GEM
+  remote: https://rubygems.org/
   specs:
     active_attr (0.8.5)
       activemodel (>= 3.0.2, < 5.0)
@@ -133,10 +134,12 @@ PLATFORMS
 
 DEPENDENCIES
   awesome_print
-  faraday
   guard
   guard-rspec
   guard-rubocop
   neo4j
   overcommit
   rspec
+
+BUNDLED WITH
+   1.10.6
