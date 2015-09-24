@@ -170,6 +170,7 @@ module PackStream
 
     def value_for_type!(type, size)
       case type
+      when :tiny_int                 then size.to_i
       when :int                      then value_for_int!(size)
       when :tiny_text, :text, :bytes then shift_bytes(size).pack('c*')
       when :tiny_list, :list     then size.times.map { unpack_value! }
@@ -209,10 +210,12 @@ module PackStream
       marker_spec
     else
       case marker
-      when 0x80..0x8F then [:tiny_text, marker - 0x80]
-      when 0x90..0x9F then [:tiny_list, marker - 0x90]
-      when 0xA0..0xAF then [:tiny_map, marker - 0xA0]
-      when 0xB0..0xBF then [:tiny_struct, marker - 0xB0]
+        when 0x00..0x7F then [:tiny_int, marker]
+        when 0xF0..0xFF then [:tiny_int, marker - 0x100]
+        when 0x80..0x8F then [:tiny_text, marker - 0x80]
+        when 0x90..0x9F then [:tiny_list, marker - 0x90]
+        when 0xA0..0xAF then [:tiny_map, marker - 0xA0]
+        when 0xB0..0xBF then [:tiny_struct, marker - 0xB0]
       end
     end
   end
