@@ -1,33 +1,76 @@
 require 'stringio'
 
-# Implements the the PackStream packing and unpacking specifications
-# as specified by Neo Technology for the Neo4j graph database
+class SingleValueUnpacker
+  def initialize default_value
+    @default_value = default_value
+  end
+
+  def unpack marker, stream
+    @default_value
+  end
+end
+
+class PositiveTinyIntUnpacker
+  def unpack marker, stream
+    marker.to_i
+  end
+end
+
+class NegativeTinyIntUnpacker
+  def unpack marker, stream
+    marker.to_i - 0x100
+  end
+end
+
+class TinyTextUnpacker
+  def unpack marker, stream
+    size = (marker & 0x0F)
+    stream.unpack("LL#{size}")[1..size].map { |c| c.chr }.join
+  end
+end
+
+class PackStreamUnpacker
+  MARKER_BYTES = Hash[(0x00..0x7F).map { |byte| [byte, PositiveTinyIntUnpacker.new] } ]
+  MARKER_BYTES.merge!(0xC0 => SingleValueUnpacker.new(nil),
+                      0xC2 => SingleValueUnpacker.new(false),
+                      0xC3 => SingleValueUnpacker.new(true))
+  MARKER_BYTES.merge!(Hash[(0xF0..0xFF).map { |byte| [byte, NegativeTinyIntUnpacker.new] } ])
+  MARKER_BYTES.merge!(Hash[(0xB0..0xBF).map { |byte| [byte, TinyTextUnpacker.new] } ])
+
+  def unpack packed_stream
+    marker = packed_stream.read(1).bytes.first
+    kind = MARKER_BYTES[marker]
+    kind.unpack marker, packed_stream
+  end
+end
+
 module PackStream
   MARKER_TYPES = {
-    C0: nil,
-    C1: [:float, 64],
-    C2: false,
-    C3: true,
-    C8: [:int, 8],
-    C9: [:int, 16],
-    CA: [:int, 32],
-    CB: [:int, 64],
-    CC: [:bytes, 8],
-    CD: [:bytes, 16],
-    CE: [:bytes, 32],
-    D0: [:text, 8],
-    D1: [:text, 16],
-    D2: [:text, 32],
-    D4: [:list, 8],
-    D5: [:list, 16],
-    D6: [:list, 32],
-    D8: [:map, 8],
-    D9: [:map, 16],
-    DA: [:map, 32],
-    DC: [:struct, 8],
-    DD: [:struct, 16],
-    DE: [:struct, 32]
+      C0: nil,
+      C1: [:float, 64],
+      C2: false,
+      C3: true,
+      C8: [:int, 8],
+      C9: [:int, 16],
+      CA: [:int, 32],
+      CB: [:int, 64],
+      CC: [:bytes, 8],
+      CD: [:bytes, 16],
+      CE: [:bytes, 32],
+      D0: [:text, 8],
+      D1: [:text, 16],
+      D2: [:text, 32],
+      D4: [:list, 8],
+      D5: [:list, 16],
+      D6: [:list, 32],
+      D8: [:map, 8],
+      D9: [:map, 16],
+      DA: [:map, 32],
+      DC: [:struct, 8],
+      DD: [:struct, 16],
+      DE: [:struct, 32]
   }
+
   # For efficiency.  Translates directly from bytes to types
   MARKER_TYPES.keys.each do |key|
     ord = eval("0x#{key}") # rubocop:disable Lint/Eval
@@ -40,8 +83,6 @@ module PackStream
     MARKER_BYTES.delete(key) if key.is_a?(Array)
   end
 
-  # Object which holds a Ruby object and can
-  # pack it into a PackStream stream
   class Packer
     def initialize(object)
       @object = object
@@ -144,79 +185,12 @@ module PackStream
   # Object which holds a stream of PackStream data
   # and can unpack it
   class Unpacker
-    def initialize(stream)
+    def initialize stream
       @stream = stream
     end
 
     def unpack_value!
-      return nil if depleted?
-
-      marker = shift_byte
-
-      if type_and_size = PackStream.marker_type_and_size(marker)
-        type, size = type_and_size
-
-        size = shift_byte if [:text, :list, :map, :struct].include?(type)
-
-        value_for_type!(type, size)
-      elsif MARKER_TYPES.key?(marker)
-        MARKER_TYPES[marker]
-      else
-        marker
-      end
-    end
-
-    private
-
-    def value_for_type!(type, size)
-      case type
-      when :tiny_int                 then size.to_i
-      when :int                      then value_for_int!(size)
-      when :tiny_text, :text, :bytes then shift_bytes(size).pack('c*')
-      when :tiny_list, :list     then size.times.map { unpack_value! }
-      when :tiny_map, :map       then value_for_map!(size)
-      when :tiny_struct, :struct then size.times.map { unpack_value! }.freeze
-      end
-    end
-
-    def value_for_int!(size)
-      shift_bytes(size).reverse.each_with_index.inject(0) do |sum, (byte, i)|
-        sum + (byte * (256**i))
-      end
-    end
-
-    def value_for_map!(size)
-      size.times.each_with_object({}) do |_, r|
-        key = unpack_value!
-        r[key] = unpack_value!
-      end
-    end
-
-    def shift_byte
-      shift_bytes(1).first unless depleted?
-    end
-
-    def shift_bytes(length)
-      @stream.read(length).bytes unless depleted?
-    end
-
-    def depleted?
-      @stream.eof?
-    end
-  end
-
-  def self.marker_type_and_size(marker)
-    if (marker_spec = MARKER_TYPES[marker]).is_a?(Array)
-      marker_spec
-    else
-      case marker
-        when 0x00..0x7F then [:tiny_int, marker]
-        when 0xF0..0xFF then [:tiny_int, marker - 0x100]
-        when 0x80..0x8F then [:tiny_text, marker - 0x80]
-        when 0x90..0x9F then [:tiny_list, marker - 0x90]
-        when 0xA0..0xAF then [:tiny_map, marker - 0xA0]
-        when 0xB0..0xBF then [:tiny_struct, marker - 0xB0]
-      end
+      PackStreamUnpacker.new.unpack @stream
     end
   end
 end
