@@ -25,11 +25,11 @@ describe PackStream do
 
       context "Integers" do
         it "unpacks positive TINY_INT" do
-          expect(unpacked "\x7F").to be(127)
+          expect(unpacked "\x7F").to eq(127)
         end
 
         it "unpacks negative TINY_INT" do
-          expect(unpacked "\xF0").to be(-16)
+          expect(unpacked "\xF0").to eq(-16)
         end
 
         it "unpacks all negative TINY_INT values" do
@@ -43,23 +43,6 @@ describe PackStream do
             expect(unpacked([number].pack("C"))).to eq(number)
           end
         end
-
-        it "unpacks negative INT_8 values" do
-          expect(unpacked "\xC8\x81").to be(-127)
-        end
-
-        it "unpacks all negative INT_8 values" do
-          (-128..-1).each do |number|
-            expect(unpacked([0xC8, number + 0x100].pack("C*"))).to eq(number)
-          end
-        end
-
-        it "unpacks all positive INT_8 values" do
-          (0..+127).each do |number|
-            expect(unpacked([0xC8, number].pack("C*"))).to eq(number)
-          end
-        end
-
       end
 
       context "Float"
@@ -69,54 +52,6 @@ describe PackStream do
       context "Node"
       context "Relationship"
       context "Path"
-
-      let(:unpacker) { PackStream::Unpacker.new(input) }
-      let(:output) { unpacker.unpack_value! }
-
-      # rubocop:disable Metrics/LineLength
-      {
-        # Integers
-        "\x2A" => 42,
-        "\xC8\x2A" => 42,
-        "\xC9\x00\x2A" => 42,
-        "\xCA\x00\x00\x00\x2A" => 42,
-        "\xCB\x00\x00\x00\x00\x00\x00\x00\x2A" => 42,
-        "\xCB\x01\x02\x03\x04" => 16_909_060,
-
-        # Tiny Text
-        "\x80" => '',
-        "\x85\x48\x65\x6C\x6C\x6F" => 'Hello',
-
-        # Text
-        "\xD0\x11\x4E\x65\x6F\x34\x6A\x20\x69\x73\x20\x61\x77\x65\x73\x6F\x6D\x65\x21" => 'Neo4j is awesome!',
-
-        # Tiny List
-        "\x92\xC3\xC2" => [true, false],
-
-        # List
-        "\xD4\x02\xC0\xCA\x00\x00\x00\x2A" => [nil, 42],
-
-        # Tiny Map
-        "\xA2\x2A\xC2\x85\x48\x65\x6C\x6C\x6F\xC3" => {42 => false, 'Hello' => true},
-
-        # Map
-        "\xD8\x02\x2A\xC2\x85\x48\x65\x6C\x6C\x6F\xC3" => {42 => false, 'Hello' => true},
-
-        # Tiny Struct
-        "\xB2\xC3\xC2" => [true, false],
-
-        # Struct
-        "\xDC\x02\xC0\xCA\x00\x00\x00\x2A" => [nil, 42]
-
-        # rubocop:enable Metrics/LineLength
-      }.each do |i, o|
-        context "stream of: #{i.inspect}" do
-          let(:input) { StringIO.new(i) }
-          it "should output #{o.inspect}" do
-            expect(output).to eq(o)
-          end
-        end
-      end
     end
   end
 
