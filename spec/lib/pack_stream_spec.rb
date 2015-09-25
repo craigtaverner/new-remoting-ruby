@@ -2,9 +2,9 @@ require './lib/pack_stream'
 
 describe PackStream do
   describe PackStream::Unpacker do
-    describe '#unpack_value!' do
+    describe '#unpack' do
       def unpacked string
-        PackStream::Unpacker.new(StringIO.new(string)).unpack_value!
+        PackStream::Unpacker.new(StringIO.new(string)).unpack
       end
 
       context "Null" do

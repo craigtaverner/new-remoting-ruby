@@ -160,13 +160,6 @@ module PackStream
     end
   end
 
-  class TinyTextUnpacker
-    def unpack marker, stream
-      size = (marker & 0x0F)
-      stream.unpack("LL#{size}")[1..size].map { |c| c.chr }.join
-    end
-  end
-
   class IntUnpacker
     def initialize bits
       @bits = bits
@@ -198,13 +191,12 @@ module PackStream
                         0xCA => IntUnpacker.new(32),
                         0xCB => IntUnpacker.new(64))
     MARKER_BYTES.merge!(Hash[(0xF0..0xFF).map { |byte| [byte, NegativeTinyIntUnpacker.new] } ])
-    MARKER_BYTES.merge!(Hash[(0xB0..0xBF).map { |byte| [byte, TinyTextUnpacker.new] } ])
 
     def initialize stream
       @stream = stream
     end
 
-    def unpack_value!
+    def unpack
       marker = @stream.read(1).bytes.first
       kind = MARKER_BYTES[marker]
       kind.unpack marker, @stream
