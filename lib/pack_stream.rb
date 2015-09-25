@@ -167,11 +167,39 @@ module PackStream
     end
   end
 
+  class Int8Unpacker
+    def unpack marker, stream
+      stream.read.unpack("c").first.to_i
+    end
+  end
+
+  class Int16Unpacker
+    def unpack marker, stream
+      stream.read.unpack("s").first.to_i
+    end
+  end
+
+  class Int32Unpacker
+    def unpack marker, stream
+      stream.read.unpack("l").first.to_i
+    end
+  end
+
+  class Int64Unpacker
+    def unpack marker, stream
+      stream.read.unpack("q").first.to_i
+    end
+  end
+
   class Unpacker
     MARKER_BYTES = Hash[(0x00..0x7F).map { |byte| [byte, PositiveTinyIntUnpacker.new] } ]
     MARKER_BYTES.merge!(0xC0 => SingleValueUnpacker.new(nil),
                         0xC2 => SingleValueUnpacker.new(false),
                         0xC3 => SingleValueUnpacker.new(true))
+    MARKER_BYTES.merge!(0xC8 => Int8Unpacker.new,
+                        0xC9 => Int16Unpacker.new,
+                        0xCA => Int32Unpacker.new,
+                        0xCB => Int64Unpacker.new)
     MARKER_BYTES.merge!(Hash[(0xF0..0xFF).map { |byte| [byte, NegativeTinyIntUnpacker.new] } ])
     MARKER_BYTES.merge!(Hash[(0xB0..0xBF).map { |byte| [byte, TinyTextUnpacker.new] } ])
 

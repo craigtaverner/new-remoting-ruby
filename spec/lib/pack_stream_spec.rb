@@ -43,6 +43,41 @@ describe PackStream do
             expect(unpacked([number].pack("C"))).to eq(number)
           end
         end
+
+        it "unpacks negative INT_8" do
+          expect(unpacked [0xC8, -128].pack("Cc")).to eq(-128)
+          expect(unpacked [0xC8, -17].pack("Cc")).to eq(-17)
+        end
+
+        it "unpacks negative INT_16" do
+          expect(unpacked [0xC9, -32_768].pack("Cs")).to eq(-32_768)
+          expect(unpacked [0xC9, -129].pack("Cs")).to eq(-129)
+        end
+
+        it "unpacks positive INT_16" do
+          expect(unpacked [0xC9, 128].pack("Cs")).to eq(128)
+          expect(unpacked [0xC9, 32_767].pack("Cs")).to eq(32_767)
+        end
+
+        it "unpacks negative INT_32" do
+          expect(unpacked [0xCA, -2_147_483_648].pack("Cl")).to eq(-2_147_483_648)
+          expect(unpacked [0xCA, -32_769].pack("Cl")).to eq(-32_769)
+        end
+
+        it "unpacks positive INT_32" do
+          expect(unpacked [0xCA, 32_768].pack("Cl")).to eq(32_768)
+          expect(unpacked [0xCA, 2_147_483_647].pack("Cl")).to eq(2_147_483_647)
+        end
+
+        it "unpacks negative INT_64" do
+          expect(unpacked [0xCB, -9_223_372_036_854_775_808].pack("Cq")).to eq(-9_223_372_036_854_775_808)
+          expect(unpacked [0xCB, -2_147_483_649].pack("Cq")).to eq(-2_147_483_649)
+        end
+
+        it "unpacks positive INT_64" do
+          expect(unpacked [0xCB, 2_147_483_648].pack("Cq")).to eq(2_147_483_648)
+          expect(unpacked [0xCB, 9_223_372_036_854_775_807].pack("Cq")).to eq(9_223_372_036_854_775_807)
+        end
       end
 
       context "Float"
