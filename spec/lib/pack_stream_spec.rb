@@ -15,9 +15,9 @@ describe PackStream do
 
       context "Booleans" do
         it "unpacks false" do
-          result = unpacked("\xC2")
           expect(unpacked "\xC2").to eq(false)
         end
+
         it "unpacks true" do
           expect(unpacked "\xC3").to eq(true)
         end
