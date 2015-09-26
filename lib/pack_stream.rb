@@ -11,7 +11,7 @@ module PackStream
     end
   end
 
-  class NumberPacker
+  class IntPacker
     def pack object
       marker_and_number, format_string = data_for object
 
@@ -47,8 +47,8 @@ module PackStream
         NilClass => SingleValuePacker.new(0xC0),
         FalseClass => SingleValuePacker.new(0xC2),
         TrueClass => SingleValuePacker.new(0xC3),
-        Fixnum => NumberPacker.new,
-        Bignum => NumberPacker.new
+        Fixnum => IntPacker.new,
+        Bignum => IntPacker.new
     }
 
     def initialize(object)
