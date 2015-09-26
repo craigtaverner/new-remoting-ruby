@@ -43,7 +43,7 @@ module PackStream
   end
 
   class Packer
-    TYPE_PACKERS = {
+    TYPE_TO_PACKER = {
         NilClass => SingleValuePacker.new(0xC0),
         FalseClass => SingleValuePacker.new(0xC2),
         TrueClass => SingleValuePacker.new(0xC3),
@@ -56,12 +56,12 @@ module PackStream
     end
 
     def pack
-      packer_for_type(@object.class).pack @object
+      packer_for(@object).pack @object
     end
 
   private
-    def packer_for_type kind
-      TYPE_PACKERS[kind]
+    def packer_for object
+      TYPE_TO_PACKER[object.class]
     end
   end
 
