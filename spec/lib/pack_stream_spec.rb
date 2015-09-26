@@ -81,7 +81,20 @@ describe PackStream do
       end
 
       context 'Float'
-      context 'Text'
+      context 'Text' do
+        context 'TinyText' do
+          it 'unpacks empty string' do
+            expect(unpacked [0x80].pack('C ')).to eq('')
+          end
+
+          it 'unpacks tiny strings' do
+            expect(unpacked [0x81, 0x61].pack('Cc')).to eq('a')
+            expect(unpacked ([0x85] + 'hello'.unpack('U*')).pack('CU*')).to eq('hello')
+            expect(unpacked ([0x8F] + 'abcdefghijklmno'.unpack('U*')).pack('CU*')).to eq('abcdefghijklmno')
+          end
+        end
+      end
+
       context 'List'
       context 'Map'
       context 'Node'
