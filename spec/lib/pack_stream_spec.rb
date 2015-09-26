@@ -138,10 +138,25 @@ describe PackStream do
           expect(packed 32_767).to eq("\xC9\xFF\x7F")
         end
 
-        it "packs negative INT_32"
-        it "packs positive INT_32"
-        it "packs negative INT_64"
-        it "packs positive INT_64"
+        it "packs negative INT_32" do
+          expect(packed -2_147_483_648).to eq("\xCA\x00\x00\x00\x80")
+          expect(packed -32_769).to eq("\xCA\xFF\x7F\xFF\xFF")
+        end
+
+        it "packs positive INT_32" do
+          expect(packed 32_768).to eq("\xCA\x00\x80\x00\x00")
+          expect(packed 2_147_483_647).to eq("\xCA\xFF\xFF\xFF\x7F")
+        end
+
+        it "packs negative INT_64" do
+          expect(packed -9_223_372_036_854_775_808).to eq("\xCB\x00\x00\x00\x00\x00\x00\x00\x80")
+          expect(packed -2_147_483_649).to eq("\xCB\xFF\xFF\xFF\x7F\xFF\xFF\xFF\xFF")
+        end
+
+        it "packs positive INT_64" do
+          expect(packed 2_147_483_648).to eq("\xCB\x00\x00\x00\x80\x00\x00\x00\x00")
+          expect(packed 9_223_372_036_854_775_807).to eq("\xCB\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x7F")
+        end
       end
 
       context "Float"

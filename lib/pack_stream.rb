@@ -11,7 +11,7 @@ module PackStream
     end
   end
 
-  class IntPacker
+  class NumberPacker
     def pack object
       marker_and_number, format_string = data_for object
 
@@ -20,15 +20,23 @@ module PackStream
 
     def data_for number
       marker_and_number, format_string = case number
-                                          when -32_768..-129
-                                            [[0xC9, number],  'S']
-                                          when -128..-17
-                                            [[0xC8, number], 'c']
-                                          when -16..127
-                                            [[number], '']
-                                          when 128..32_767
-                                            [[0xC9, number], 'S']
-                                        end
+                                           when -9_223_372_036_854_775_808..-2_147_483_649
+                                             [[0xCB, number], 'q']
+                                           when -2_147_483_648..-32_769
+                                             [[0xCA, number], 'l']
+                                           when -32_768..-129
+                                             [[0xC9, number], 's']
+                                           when -128..-17
+                                             [[0xC8, number], 'c']
+                                           when -16..127
+                                             [[number], '']
+                                           when 128..32_767
+                                             [[0xC9, number], 's']
+                                           when 32_768..2_147_483_647
+                                             [[0xCA, number], 'l']
+                                           when 2_147_483_648..9_223_372_036_854_775_807
+                                             [[0xCB, number], 'q']
+                                         end
 
       [marker_and_number, format_string]
     end
@@ -39,7 +47,8 @@ module PackStream
         NilClass => SingleValuePacker.new(0xC0),
         FalseClass => SingleValuePacker.new(0xC2),
         TrueClass => SingleValuePacker.new(0xC3),
-        Fixnum => IntPacker.new
+        Fixnum => NumberPacker.new,
+        Bignum => NumberPacker.new
     }
 
     def initialize(object)
