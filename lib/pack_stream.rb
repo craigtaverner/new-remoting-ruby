@@ -11,11 +11,35 @@ module PackStream
     end
   end
 
+  class IntPacker
+    def pack object
+      marker_and_number, format_string = data_for object
+
+      marker_and_number.pack('C' + format_string.to_s).force_encoding "UTF-8"
+    end
+
+    def data_for number
+      marker_and_number, format_string = case number
+                                          when -32_768..-129
+                                            [[0xC9, number],  'S']
+                                          when -128..-17
+                                            [[0xC8, number], 'c']
+                                          when -16..127
+                                            [[number], '']
+                                          when 128..32_767
+                                            [[0xC9, number], 'S']
+                                        end
+
+      [marker_and_number, format_string]
+    end
+  end
+
   class Packer
     TYPE_PACKERS = {
         NilClass => SingleValuePacker.new(0xC0),
         FalseClass => SingleValuePacker.new(0xC2),
-        TrueClass => SingleValuePacker.new(0xC3)
+        TrueClass => SingleValuePacker.new(0xC3),
+        Fixnum => IntPacker.new
     }
 
     def initialize(object)

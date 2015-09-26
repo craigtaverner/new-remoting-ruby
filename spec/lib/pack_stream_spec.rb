@@ -111,6 +111,38 @@ describe PackStream do
           expect(packed true).to eq("\xC3")
         end
       end
+      
+      context "Integers" do
+        it "packs negative TINY_INT" do
+          expect(packed -16).to eq("\xF0")
+          expect(packed -1).to eq("\xFF")
+        end
+
+        it "packs positive TINY_INT" do
+          expect(packed 0).to eq("\x00")
+          expect(packed 127).to eq("\x7F")
+        end
+
+        it "packs negative INT_8" do
+          expect(packed -128).to eq("\xC8\x80")
+          expect(packed -17).to eq("\xC8\xEF")
+        end
+
+        it "packs negative INT_16" do
+          expect(packed -32_768).to eq("\xC9\x00\x80")
+          expect(packed -129).to eq("\xC9\x7F\xFF")
+        end
+
+        it "packs positive INT_16" do
+          expect(packed 128).to eq("\xC9\x80\x00")
+          expect(packed 32_767).to eq("\xC9\xFF\x7F")
+        end
+
+        it "packs negative INT_32"
+        it "packs positive INT_32"
+        it "packs negative INT_64"
+        it "packs positive INT_64"
+      end
 
       context "Float"
       context "Text"
